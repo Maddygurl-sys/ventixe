@@ -629,14 +629,14 @@ exports.listMyBookings = async (req, res) => {
       return res.status(400).json({ message: 'studentName or bookedBy is required.' });
     }
     
-    const query = {};
-    if (bookedBy) {
-      query.bookedBy = bookedBy.trim();
-    } else {
-      query.studentName = { $regex: new RegExp('^' + studentName.trim() + '$', 'i') };
-    }
+    const searchName = (bookedBy || studentName || '').trim();
     
-    const registrations = await Registration.find(query).populate('eventId');
+    const registrations = await Registration.find({
+      $or: [
+        { bookedBy: searchName },
+        { studentName: { $regex: new RegExp('^' + searchName + '$', 'i') } }
+      ]
+    }).populate('eventId');
     
     // Filter: Only visible UNTIL the program ends
     const activeRegistrations = registrations.filter(reg => {
