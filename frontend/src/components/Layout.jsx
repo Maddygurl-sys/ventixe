@@ -49,7 +49,7 @@ export default function Layout({ children }) {
 
   const handleLogout = () => {
     localStorage.removeItem('user');
-    window.location.reload();
+    window.location.href = '/';
   };
 
   const clearNotifications = async () => {

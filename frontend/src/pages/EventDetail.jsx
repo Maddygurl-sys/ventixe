@@ -151,7 +151,7 @@ export default function EventDetail() {
     );
   }
 
-  if (error && !event) {
+  if (error && !event && !showCancelSuccess) {
     return (
       <div className="p-8 rounded-3xl bg-pink-50 border border-pink-100 text-pink-900 text-center space-y-4 max-w-xl mx-auto">
         <span className="material-symbols-outlined text-4xl text-primary">error</span>
@@ -481,7 +481,7 @@ export default function EventDetail() {
                 </div>
               )}
 
-              {error && (
+              {error && !showCancelSuccess && (
                 <div className="p-4 bg-pink-50 border border-pink-100 text-pink-900 text-xs font-semibold rounded-2xl flex items-start gap-2 animate-entrance">
                   <span className="material-symbols-outlined text-[16px] text-primary mt-0.5 animate-pulse">error</span>
                   <span>{error}</span>
