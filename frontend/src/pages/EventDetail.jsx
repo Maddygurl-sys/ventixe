@@ -28,6 +28,7 @@ export default function EventDetail() {
   const [showCancelSuccess, setShowCancelSuccess] = useState(false);
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
   const [upiTransactionId, setUpiTransactionId] = useState('');
+  const [quantity, setQuantity] = useState(1);
 
   useEffect(() => {
     fetchEventDetails();
@@ -94,7 +95,8 @@ export default function EventDetail() {
         studentEmail: email,
         studentPhone: phone,
         foodPreference,
-        bypassClash
+        bypassClash,
+        quantity
       };
 
       if (event.isPaid) {
@@ -128,7 +130,7 @@ export default function EventDetail() {
       setError('');
       setShowCheckoutModal(false);
       setUpiTransactionId('');
-      setEvent(prev => prev ? { ...prev, registrationCount: prev.registrationCount + 1 } : null);
+      setEvent(prev => prev ? { ...prev, registrationCount: prev.registrationCount + quantity } : null);
     } catch (err) {
       setError(err.message || 'An error occurred during registration.');
       setShowCheckoutModal(false);
@@ -568,6 +570,23 @@ export default function EventDetail() {
                   </select>
                 </div>
 
+                <div className="space-y-1">
+                  <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest" htmlFor="quantity">Number of Tickets</label>
+                  <select 
+                    id="quantity"
+                    disabled={isFull || submitting || isPastDeadline}
+                    value={quantity}
+                    onChange={(e) => setQuantity(Number(e.target.value))}
+                    className="w-full px-4 py-3 bg-slate-50/50 border border-slate-100 rounded-xl text-sm font-semibold text-slate-700 focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-white transition-all disabled:opacity-50"
+                  >
+                    <option value={1}>1 Ticket</option>
+                    <option value={2}>2 Tickets</option>
+                    <option value={3}>3 Tickets</option>
+                    <option value={4}>4 Tickets</option>
+                    <option value={5}>5 Tickets</option>
+                  </select>
+                </div>
+
                 <button 
                   type="submit"
                   disabled={isFull || submitting || isPastDeadline || (clashError && !bypassClash)}
@@ -666,7 +685,8 @@ export default function EventDetail() {
             <div className="space-y-4">
               <div className="text-center space-y-1">
                 <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Amount to Pay</span>
-                <h3 className="text-3xl font-black text-slate-800">₹{event.entryFee}</h3>
+                <h3 className="text-3xl font-black text-slate-800">₹{event.entryFee * quantity}</h3>
+                <p className="text-[10.5px] font-black text-slate-650 mt-1">({quantity} Ticket{quantity > 1 ? 's' : ''} × ₹{event.entryFee})</p>
                 <p className="text-[10px] font-bold text-slate-500">Host UPI: <code className="bg-slate-50 px-1.5 py-0.5 rounded text-primary font-mono">{event.upiId}</code></p>
               </div>
 
@@ -674,7 +694,7 @@ export default function EventDetail() {
                 <img 
                   alt="UPI QR Code" 
                   className="w-40 h-40 mx-auto" 
-                  src={`https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(`upi://pay?pa=${event.upiId}&pn=${event.title}&am=${event.entryFee}&cu=INR`)}`} 
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(`upi://pay?pa=${event.upiId}&pn=${event.title}&am=${event.entryFee * quantity}&cu=INR`)}`} 
                 />
               </div>
 

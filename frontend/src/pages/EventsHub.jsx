@@ -256,16 +256,11 @@ export default function EventsHub() {
                 {/* Render days of July */}
                 {Array.from({ length: 31 }, (_, i) => {
                   const day = i + 1;
-                  const eventDays = {
-                    15: { title: 'Arohan' },
-                    16: { title: 'Tiny Tans' },
-                    20: { title: 'Code Red' },
-                    22: { title: 'Mic Drop' },
-                    25: { title: 'Plate Tales' },
-                    30: { title: 'Farewell Fiesta' }
-                  };
-                  const eventInfo = eventDays[day];
-                  const actualEvent = eventInfo ? events.find(e => e.title === eventInfo.title) : null;
+                  const actualEvent = events.find(e => {
+                    if (!e.date) return false;
+                    const d = new Date(e.date);
+                    return d.getUTCDate() === day && d.getUTCMonth() === 6 && d.getUTCFullYear() === 2026;
+                  });
                   
                   return (
                     <div 
