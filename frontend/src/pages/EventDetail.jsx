@@ -97,7 +97,8 @@ export default function EventDetail() {
         studentPhone: phone,
         foodPreference,
         bypassClash,
-        quantity
+        quantity,
+        bookedBy: loggedUser.name
       };
 
       if (event.isPaid) {

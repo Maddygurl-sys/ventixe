@@ -55,7 +55,7 @@ export default function UserDashboard() {
   const fetchMyBookings = async () => {
     try {
       setLoadingBookings(true);
-      const res = await fetch(`${API_BASE}/my-bookings/list?studentName=${user.name}`);
+      const res = await fetch(`${API_BASE}/my-bookings/list?bookedBy=${user.name}&studentName=${user.name}`);
       if (!res.ok) throw new Error('Failed to fetch bookings');
       const data = await res.json();
       setMyBookings(data);
