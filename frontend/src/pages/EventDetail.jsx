@@ -29,6 +29,7 @@ export default function EventDetail() {
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
   const [upiTransactionId, setUpiTransactionId] = useState('');
   const [quantity, setQuantity] = useState(1);
+  const [activeTicketIndex, setActiveTicketIndex] = useState(0);
 
   useEffect(() => {
     fetchEventDetails();
@@ -413,62 +414,96 @@ export default function EventDetail() {
 
         {/* Right Column: Registration or ticket */}
         <div className="lg:col-span-1">
-          {successRegistration ? (
-            /* Ventixe Style Dash-Ticket Boarding Pass */
-            <div className="rounded-3xl bg-white border border-purple-50 shadow-lg overflow-hidden animate-entrance">
-              <div className="bg-gradient-to-tr from-primary to-accent p-6 text-white text-center">
-                <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <span className="material-symbols-outlined text-[20px] text-white">verified</span>
-                </div>
-                <h3 className="text-lg font-black tracking-tight leading-none">Ticket Confirmed</h3>
-                <p className="text-[10px] text-white/80 font-bold uppercase tracking-widest mt-1.5">Ventixe Entry Pass</p>
-              </div>
-
-              <div className="p-6 text-center space-y-6 relative">
-                {/* Boarding pass circular notches */}
-                <div className="absolute top-0 -left-3 w-6 h-6 bg-surface rounded-full border-r border-purple-50"></div>
-                <div className="absolute top-0 -right-3 w-6 h-6 bg-surface rounded-full border-l border-purple-50"></div>
-
-                <div className="border-t-2 border-dashed border-purple-50/80 pt-4 flex justify-center">
-                  <div className="bg-slate-50 p-3 rounded-2xl border border-purple-50">
-                    <img 
-                      alt="Ticket QR Code" 
-                      className="w-40 h-40 mx-auto" 
-                      src={successRegistration.qrCode} 
-                    />
+          {successRegistration ? (() => {
+            const tickets = successRegistration.registrations || [successRegistration];
+            const currentTicket = tickets[activeTicketIndex] || tickets[0] || successRegistration;
+            return (
+              /* Ventixe Style Dash-Ticket Boarding Pass */
+              <div className="rounded-3xl bg-white border border-purple-50 shadow-lg overflow-hidden animate-entrance">
+                <div className="bg-gradient-to-tr from-primary to-accent p-6 text-white text-center">
+                  <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <span className="material-symbols-outlined text-[20px] text-white">verified</span>
                   </div>
+                  <h3 className="text-lg font-black tracking-tight leading-none">Ticket Confirmed</h3>
+                  <p className="text-[10px] text-white/80 font-bold uppercase tracking-widest mt-1.5">Ventixe Entry Pass</p>
                 </div>
 
-                <div className="text-left bg-slate-50 p-4 rounded-2xl text-xs space-y-2 border border-purple-50 font-semibold text-slate-600">
-                  <p><span className="text-slate-400">Pass ID:</span> {successRegistration._id}</p>
-                  <p><span className="text-slate-400">Attendee:</span> {successRegistration.studentName}</p>
-                  <p><span className="text-slate-400">Email:</span> {successRegistration.studentEmail}</p>
-                  <p><span className="text-slate-400">Event:</span> {event.title}</p>
-                  {successRegistration.paymentStatus === 'paid' && (
-                    <>
-                      <p><span className="text-slate-400">Payment:</span> <span className="text-green-600 font-extrabold">Paid (₹{event.entryFee})</span></p>
-                      <p><span className="text-slate-400">Transaction ID:</span> <code className="bg-slate-100 px-1 py-0.5 rounded text-[10px] font-mono">{successRegistration.upiTransactionId}</code></p>
-                    </>
+                <div className="p-6 text-center space-y-6 relative">
+                  {/* Boarding pass circular notches */}
+                  <div className="absolute top-0 -left-3 w-6 h-6 bg-surface rounded-full border-r border-purple-50"></div>
+                  <div className="absolute top-0 -right-3 w-6 h-6 bg-surface rounded-full border-l border-purple-50"></div>
+
+                  {tickets.length > 1 && (
+                    <div className="flex items-center justify-between px-3.5 py-2 bg-slate-50 rounded-2xl border border-purple-50/50">
+                      <button
+                        type="button"
+                        disabled={activeTicketIndex === 0}
+                        onClick={() => setActiveTicketIndex(prev => prev - 1)}
+                        className="inline-flex items-center gap-0.5 text-[10px] font-black text-primary hover:underline disabled:opacity-30 disabled:no-underline"
+                      >
+                        <span className="material-symbols-outlined text-[14px]">arrow_back</span>
+                        Prev
+                      </button>
+                      <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">
+                        Ticket {activeTicketIndex + 1} of {tickets.length}
+                      </span>
+                      <button
+                        type="button"
+                        disabled={activeTicketIndex === tickets.length - 1}
+                        onClick={() => setActiveTicketIndex(prev => prev + 1)}
+                        className="inline-flex items-center gap-0.5 text-[10px] font-black text-primary hover:underline disabled:opacity-30 disabled:no-underline"
+                      >
+                        Next
+                        <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
+                      </button>
+                    </div>
                   )}
-                </div>
 
-                <button 
-                  onClick={() => {
-                    setSuccessRegistration(null);
-                    setName('');
-                    setEmail('');
-                    setPhone('');
-                    setFoodPreference('none');
-                    setBypassClash(false);
-                    setUpiTransactionId('');
-                  }}
-                  className="w-full py-3 bg-fuchsia-50 hover:bg-fuchsia-100 text-primary rounded-xl text-xs font-extrabold transition-colors border border-purple-100 uppercase tracking-wider"
-                >
-                  Book Another Event
-                </button>
+                  <div className="border-t-2 border-dashed border-purple-50/80 pt-4 flex justify-center">
+                    <div className="bg-slate-50 p-3 rounded-2xl border border-purple-50">
+                      {currentTicket.qrCode && (
+                        <img 
+                          alt="Ticket QR Code" 
+                          className="w-40 h-40 mx-auto" 
+                          src={currentTicket.qrCode} 
+                        />
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="text-left bg-slate-50 p-4 rounded-2xl text-xs space-y-2 border border-purple-50 font-semibold text-slate-600">
+                    <p><span className="text-slate-400">Pass ID:</span> <span className="font-mono text-[10.5px]">{currentTicket._id}</span></p>
+                    <p><span className="text-slate-400">Attendee:</span> {currentTicket.studentName}</p>
+                    <p><span className="text-slate-400">Email:</span> {currentTicket.studentEmail}</p>
+                    <p><span className="text-slate-400">Event:</span> {event.title}</p>
+                    {currentTicket.paymentStatus === 'paid' && (
+                      <>
+                        <p><span className="text-slate-400">Payment:</span> <span className="text-green-600 font-extrabold">Paid (₹{event.entryFee})</span></p>
+                        <p><span className="text-slate-400">Transaction ID:</span> <code className="bg-slate-100 px-1 py-0.5 rounded text-[10px] font-mono">{currentTicket.upiTransactionId}</code></p>
+                      </>
+                    )}
+                  </div>
+
+                  <button 
+                    onClick={() => {
+                      setSuccessRegistration(null);
+                      setActiveTicketIndex(0);
+                      setName('');
+                      setEmail('');
+                      setPhone('');
+                      setFoodPreference('none');
+                      setBypassClash(false);
+                      setUpiTransactionId('');
+                      setQuantity(1);
+                    }}
+                    className="w-full py-3 bg-fuchsia-50 hover:bg-fuchsia-100 text-primary rounded-xl text-xs font-extrabold transition-colors border border-purple-100 uppercase tracking-wider"
+                  >
+                    Book Another Event
+                  </button>
+                </div>
               </div>
-            </div>
-          ) : (
+            );
+          })() : (
             /* Registration Form */
             <div className="p-8 rounded-3xl bg-white border border-purple-50 shadow-sm space-y-6">
               <div>

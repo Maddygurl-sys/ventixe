@@ -13,6 +13,12 @@ export default function LoginPage({ onLoginSuccess }) {
     e.preventDefault();
     setError('');
     setSuccess('');
+
+    if (isRegister && password.length < 6) {
+      setError('Password is less than 6 characters. Keep a strong password.');
+      return;
+    }
+
     setLoading(true);
 
     try {
