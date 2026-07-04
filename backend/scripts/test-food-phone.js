@@ -1,9 +1,26 @@
+const mongoose = require('mongoose');
+const Event = require('../models/Event');
+const Registration = require('../models/Registration');
+
 const API_BASE = 'http://localhost:5001/api';
 
 async function runTests() {
   console.log('--- Starting New Features Integration Tests (Food, Coordinator, Phone, Clash) ---');
 
   try {
+    let uri = process.env.MONGODB_URI;
+    if (!uri || uri === 'memory') {
+      uri = 'mongodb://127.0.0.1:27017/event-management';
+    }
+    await mongoose.connect(uri);
+
+    // Clear old test data
+    const oldEvent = await Event.findOne({ title: 'Freshers Fiesta' });
+    if (oldEvent) {
+      await Registration.deleteMany({ eventId: oldEvent._id });
+      await Event.deleteOne({ _id: oldEvent._id });
+    }
+
     // 1. Create event with coordinator and food menu
     console.log('\n1. Creating event with coordinator details and food menu...');
     const res1 = await fetch(`${API_BASE}/events`, {
@@ -80,10 +97,12 @@ async function runTests() {
     }
 
     console.log('\n--- All Food, Coordinator, Phone, and Clash Tests Passed Successfully! ---');
+    await mongoose.disconnect();
     process.exit(0);
 
   } catch (error) {
     console.error('\n❌ Test failed:', error.message);
+    try { await mongoose.disconnect(); } catch(e) {}
     process.exit(1);
   }
 }

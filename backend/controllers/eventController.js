@@ -353,10 +353,15 @@ exports.createEvent = async (req, res) => {
 exports.registerStudent = async (req, res) => {
   try {
     const eventId = req.params.id;
-    const { studentName, studentEmail, studentPhone, foodPreference, bypassClash, paymentStatus, upiTransactionId } = req.body;
+    const { studentName, studentEmail, studentPhone, foodPreference, bypassClash, paymentStatus, upiTransactionId, quantity: qtyInput } = req.body;
     
     if (!studentName || !studentEmail || !studentPhone) {
       return res.status(400).json({ message: 'Name, email, and phone number are required' });
+    }
+    
+    const quantity = parseInt(qtyInput, 10) || 1;
+    if (quantity < 1 || quantity > 5) {
+      return res.status(400).json({ message: 'Invalid ticket quantity. You can book between 1 and 5 tickets.' });
     }
     
     const event = await Event.findById(eventId);
@@ -379,28 +384,31 @@ exports.registerStudent = async (req, res) => {
     
     // 1. Check capacity
     const regCount = await Registration.countDocuments({ eventId });
-    if (regCount >= event.capacity) {
-      return res.status(400).json({ message: `Registration failed. '${event.title}' is at full capacity (${event.capacity}).` });
+    if (regCount >= event.capacity || regCount + quantity > event.capacity) {
+      return res.status(400).json({ message: 'Event is full. Cannot book.' });
     }
     
     const emailLower = studentEmail.trim().toLowerCase();
     
-    // 2. Check if student already registered for this event
-    const existingReg = await Registration.findOne({ eventId, studentEmail: emailLower });
-    if (existingReg) {
-      return res.status(400).json({ message: `You are already registered for '${event.title}'.` });
+    // 2. Check ticket quota for this student name / email (limit to 5)
+    const studentBookingsCount = await Registration.countDocuments({ 
+      eventId,
+      $or: [
+        { studentName: { $regex: new RegExp('^' + studentName.trim() + '$', 'i') } },
+        { studentEmail: emailLower }
+      ]
+    });
+    if (studentBookingsCount >= 5 || studentBookingsCount + quantity > 5) {
+      return res.status(400).json({ message: 'You cannot book more than 5 tickets.' });
     }
     
-    // 3. Clash Detection Logic (Step 4)
-    // Find all registrations by this student and populate their event details
+    // 3. Clash Detection Logic
     const studentRegistrations = await Registration.find({ studentEmail: emailLower }).populate('eventId');
-    
     if (!bypassClash) {
       for (const reg of studentRegistrations) {
         const regEvent = reg.eventId;
-        if (!regEvent) continue;
+        if (!regEvent || regEvent._id.toString() === event._id.toString()) continue;
         
-        // Check if dates are same and times overlap
         if (isSameDay(event.date, regEvent.date) && isOverlapping(event.time, regEvent.time)) {
           return res.status(409).json({
             clash: true,
@@ -423,47 +431,54 @@ exports.registerStudent = async (req, res) => {
       finalUpiTxId = upiTransactionId.trim();
     }
 
-    // 5. Create registration placeholder to get an ID
-    const registration = new Registration({
-      eventId,
-      studentName: studentName.trim(),
-      studentEmail: emailLower,
-      studentPhone: studentPhone.trim(),
-      foodPreference: foodPreference || 'none',
-      checkedIn: false,
-      qrCode: 'PENDING',
-      paymentStatus: finalPaymentStatus,
-      upiTransactionId: finalUpiTxId
-    });
-    
-    // Generate QR code encoding the registration verification details
-    // We encode the registration ID which will be scanned at checkin
-    const qrData = JSON.stringify({
-      registrationId: registration._id,
-      eventId: event._id
-    });
-    
-    const qrCodeDataUrl = await QRCode.toDataURL(qrData);
-    registration.qrCode = qrCodeDataUrl;
-    
-    await registration.save();
+    const createdRegistrations = [];
+
+    // 5. Create Q registrations in a loop
+    for (let i = 0; i < quantity; i++) {
+      const registration = new Registration({
+        eventId,
+        studentName: studentName.trim(),
+        studentEmail: emailLower,
+        studentPhone: studentPhone.trim(),
+        foodPreference: foodPreference || 'none',
+        checkedIn: false,
+        qrCode: 'PENDING',
+        paymentStatus: finalPaymentStatus,
+        upiTransactionId: finalUpiTxId
+      });
+      
+      const qrData = JSON.stringify({
+        registrationId: registration._id,
+        eventId: event._id
+      });
+      
+      const qrCodeDataUrl = await QRCode.toDataURL(qrData);
+      registration.qrCode = qrCodeDataUrl;
+      
+      await registration.save();
+      createdRegistrations.push(registration);
+    }
     
     // Log activity
     try {
       const activity = new Activity({
-        userName: registration.studentName,
-        userEmail: registration.studentEmail,
+        userName: studentName.trim(),
+        userEmail: emailLower,
         activityType: 'REGISTER_EVENT',
-        description: `Booked ticket for event: '${event.title}'`
+        description: `Booked ${quantity} ticket(s) for event: '${event.title}'`
       });
       await activity.save();
-    } catch (e) {
-      console.warn("Failed to log booking activity:", e);
+    } catch (err) {
+      console.warn('Activity log failed:', err.message);
     }
-
-    res.status(201).json(registration);
+    
+    res.status(201).json({
+      ...createdRegistrations[0].toObject(),
+      message: 'Registration successful',
+      registrations: createdRegistrations
+    });
   } catch (error) {
-    res.status(500).json({ message: 'Error registering for event', error: error.message });
+    res.status(500).json({ message: 'Error registering student', error: error.message });
   }
 };
 

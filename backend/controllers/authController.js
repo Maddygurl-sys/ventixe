@@ -13,6 +13,10 @@ exports.register = async (req, res) => {
       return res.status(400).json({ message: 'Username and password are required.' });
     }
 
+    if (password.length < 6) {
+      return res.status(400).json({ message: 'Password is less than 6 characters. Keep a strong password.' });
+    }
+
     const usernameLower = username.trim().toLowerCase();
 
     // Check if user already exists
