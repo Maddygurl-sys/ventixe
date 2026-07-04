@@ -253,7 +253,7 @@ exports.getEvent = async (req, res) => {
 exports.createEvent = async (req, res) => {
   try {
     await cleanupPastEvents();
-    const { title, description, date, time, venue, capacity, createdBy, foodMenu, coordinatorName, coordinatorPhone, isPaid, entryFee, upiId } = req.body;
+    const { title, description, date, time, venue, capacity, createdBy, foodMenu, coordinatorName, coordinatorPhone, isPaid, entryFee, upiId, dueDate } = req.body;
     
     if (!title || !description || !date || !time || !venue || !capacity) {
       return res.status(400).json({ message: 'All fields except createdBy are required' });
@@ -274,6 +274,14 @@ exports.createEvent = async (req, res) => {
     const limitDate = new Date(today.getFullYear(), today.getMonth() + 3, 0, 23, 59, 59, 999);
     if (proposedDate > limitDate) {
       return res.status(400).json({ message: 'Event date must be within the next 3 months.' });
+    }
+    
+    let parsedDueDate = undefined;
+    if (dueDate) {
+      parsedDueDate = new Date(dueDate);
+      if (parsedDueDate > proposedDate) {
+        return res.status(400).json({ message: 'Registration deadline cannot be after the event date.' });
+      }
     }
     
     let isClash = false;
@@ -306,7 +314,8 @@ exports.createEvent = async (req, res) => {
       coordinatorPhone: coordinatorPhone || '',
       isPaid: !!isPaid,
       entryFee: isPaid ? Number(entryFee || 0) : 0,
-      upiId: isPaid ? upiId : ''
+      upiId: isPaid ? upiId : '',
+      dueDate: parsedDueDate
     });
     
     await newEvent.save();
@@ -377,16 +386,22 @@ exports.registerStudent = async (req, res) => {
       return res.status(404).json({ message: 'Event not found' });
     }
     
-    // 0. Check Registration Deadline (1 day prior to event date)
+    // 0. Check Registration Deadline (custom dueDate or 1 day prior fallback)
     const today = new Date();
-    const eventDate = new Date(event.date);
-    const dueDate = new Date(eventDate.getTime() - 24 * 60 * 60 * 1000);
-    dueDate.setUTCHours(23, 59, 59, 999);
+    let dueDate;
+    if (event.dueDate) {
+      dueDate = new Date(event.dueDate);
+      dueDate.setHours(23, 59, 59, 999);
+    } else {
+      const eventDate = new Date(event.date);
+      dueDate = new Date(eventDate.getTime() - 24 * 60 * 60 * 1000);
+      dueDate.setUTCHours(23, 59, 59, 999);
+    }
     
     if (today > dueDate) {
       const formattedDueDate = dueDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
       return res.status(400).json({ 
-        message: `Registration Closed: The deadline to register was ${formattedDueDate} (1 day prior to the event).` 
+        message: `Registration Closed: The deadline to register was ${formattedDueDate}.` 
       });
     }
     
