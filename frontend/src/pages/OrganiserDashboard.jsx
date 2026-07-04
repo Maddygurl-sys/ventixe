@@ -66,6 +66,14 @@ export default function OrganiserDashboard() {
       setCreateSubmitting(true);
       setCreateError('');
       
+      // Check 3-month window limit
+      const proposedDate = new Date(date);
+      const today = new Date();
+      const limitDate = new Date(today.getFullYear(), today.getMonth() + 3, 0, 23, 59, 59, 999);
+      if (proposedDate > limitDate) {
+        throw new Error('Event date must be within the next 3 months.');
+      }
+
       const normalizedVenue = venue.trim().replace(/\s+/g, ' ');
       const timeRange = `${startTime} - ${endTime}`;
 

@@ -14,9 +14,12 @@ export default function LoginPage({ onLoginSuccess }) {
     setError('');
     setSuccess('');
 
-    if (isRegister && password.length < 6) {
-      setError('Password is less than 6 characters. Keep a strong password.');
-      return;
+    if (isRegister) {
+      const passwordRegex = /^(?=.*[A-Z])(?=.*[^A-Za-z0-9]).{6,}$/;
+      if (!passwordRegex.test(password)) {
+        setError('Password must be at least 6 characters long and contain at least one uppercase letter and one special character.');
+        return;
+      }
     }
 
     setLoading(true);

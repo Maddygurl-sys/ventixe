@@ -10,6 +10,7 @@ export default function EventsHub() {
   const [search, setSearch] = useState('');
   const [dateFilter, setDateFilter] = useState('');
   const [selectedCalendarEvent, setSelectedCalendarEvent] = useState(null);
+  const [activeMonthTab, setActiveMonthTab] = useState(0);
 
   useEffect(() => {
     fetchEvents();
@@ -234,54 +235,99 @@ export default function EventsHub() {
         <section className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-8 border-t border-purple-50">
           {/* Left Corner: Calendar view */}
           <div className="bg-white p-6 rounded-3xl border border-purple-50 shadow-sm space-y-4">
-            <div className="flex justify-between items-center">
-              <h3 className="font-extrabold text-sm text-slate-800 tracking-tight flex items-center gap-2">
-                <span className="material-symbols-outlined text-primary text-[18px]">calendar_month</span>
-                July 2026 Schedule
-              </h3>
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Ventixe Calendar</span>
-            </div>
-            
-            {/* Custom mini July 2026 Calendar */}
-            <div className="space-y-3">
-              <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                <div>Su</div><div>Mo</div><div>Tu</div><div>We</div><div>Th</div><div>Fr</div><div>Sa</div>
-              </div>
-              <div className="grid grid-cols-7 gap-1.5 text-center text-xs font-semibold text-slate-600">
-                {/* July 1st, 2026 was a Wednesday, so 3 offset days (Sun, Mon, Tue) */}
-                <div className="p-2"></div>
-                <div className="p-2"></div>
-                <div className="p-2"></div>
-                
-                {/* Render days of July */}
-                {Array.from({ length: 31 }, (_, i) => {
-                  const day = i + 1;
-                  const actualEvent = events.find(e => {
-                    if (!e.date) return false;
-                    const d = new Date(e.date);
-                    return d.getUTCDate() === day && d.getUTCMonth() === 6 && d.getUTCFullYear() === 2026;
-                  });
-                  
-                  return (
-                    <div 
-                      key={day}
-                      onClick={() => actualEvent && setSelectedCalendarEvent(actualEvent)}
-                      title={actualEvent ? `${actualEvent.title} (${actualEvent.time})` : undefined}
-                      className={`p-2 rounded-xl flex flex-col items-center justify-center relative transition-all ${
-                        actualEvent 
-                          ? 'bg-fuchsia-50 text-primary border border-primary/20 cursor-pointer font-bold hover:bg-primary hover:text-white' 
-                          : 'hover:bg-slate-50'
-                      }`}
-                    >
-                      <span>{day}</span>
-                      {actualEvent && (
-                        <span className="w-1 h-1 rounded-full bg-primary absolute bottom-1"></span>
-                      )}
+            {/* Rolling 3 Months Tab Switcher */}
+            {(() => {
+              const today = new Date();
+              const monthsList = [];
+              for (let i = 0; i < 3; i++) {
+                const d = new Date(today.getFullYear(), today.getMonth() + i, 1);
+                monthsList.push({
+                  year: d.getFullYear(),
+                  monthIndex: d.getMonth(),
+                  name: d.toLocaleDateString(undefined, { month: 'short', year: 'numeric' }),
+                  fullName: d.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })
+                });
+              }
+
+              const targetMonth = monthsList[activeMonthTab] || monthsList[0];
+              const totalDays = new Date(targetMonth.year, targetMonth.monthIndex + 1, 0).getDate();
+              const startOffset = new Date(targetMonth.year, targetMonth.monthIndex, 1).getDay();
+
+              return (
+                <>
+                  <div className="flex flex-col space-y-3">
+                    <div className="flex justify-between items-center">
+                      <h3 className="font-extrabold text-sm text-slate-800 tracking-tight flex items-center gap-2">
+                        <span className="material-symbols-outlined text-primary text-[18px]">calendar_month</span>
+                        {targetMonth.fullName} Schedule
+                      </h3>
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Ventixe Calendar</span>
                     </div>
-                  );
-                })}
-              </div>
-            </div>
+
+                    {/* Month selector tabs */}
+                    <div className="grid grid-cols-3 gap-1.5 p-1 bg-slate-50 border border-purple-50/50 rounded-2xl">
+                      {monthsList.map((m, idx) => (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => setActiveMonthTab(idx)}
+                          className={`py-2 text-[10px] font-black uppercase tracking-wider rounded-xl transition-all ${
+                            activeMonthTab === idx
+                              ? 'bg-white text-primary border border-purple-100 shadow-sm'
+                              : 'text-slate-500 hover:text-slate-700 hover:bg-slate-100/50'
+                          }`}
+                        >
+                          {m.name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  {/* Dynamic Calendar Grid */}
+                  <div className="space-y-3 pt-2">
+                    <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                      <div>Su</div><div>Mo</div><div>Tu</div><div>We</div><div>Th</div><div>Fr</div><div>Sa</div>
+                    </div>
+                    <div className="grid grid-cols-7 gap-1.5 text-center text-xs font-semibold text-slate-600">
+                      {/* Blank offset cells */}
+                      {Array.from({ length: startOffset }).map((_, i) => (
+                        <div key={`offset-${i}`} className="p-2"></div>
+                      ))}
+                      
+                      {/* Render days of selected month */}
+                      {Array.from({ length: totalDays }).map((_, i) => {
+                        const day = i + 1;
+                        const actualEvent = events.find(e => {
+                          if (!e.date) return false;
+                          const d = new Date(e.date);
+                          return d.getUTCDate() === day && 
+                                 d.getUTCMonth() === targetMonth.monthIndex && 
+                                 d.getUTCFullYear() === targetMonth.year;
+                        });
+                        
+                        return (
+                          <div 
+                            key={`day-${day}`}
+                            onClick={() => actualEvent && setSelectedCalendarEvent(actualEvent)}
+                            title={actualEvent ? `${actualEvent.title} (${actualEvent.time})` : undefined}
+                            className={`p-2 rounded-xl flex flex-col items-center justify-center relative transition-all ${
+                              actualEvent 
+                                ? 'bg-fuchsia-50 text-primary border border-primary/20 cursor-pointer font-bold hover:bg-primary hover:text-white' 
+                                : 'hover:bg-slate-50'
+                            }`}
+                          >
+                            <span>{day}</span>
+                            {actualEvent && (
+                              <span className="w-1 h-1 rounded-full bg-primary absolute bottom-1"></span>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </>
+              );
+            })()}
           </div>
 
           {/* Right Corner: Pie/Doughnut Chart of overall booked capacity */}
