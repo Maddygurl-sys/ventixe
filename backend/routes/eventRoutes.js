@@ -9,6 +9,7 @@ router.get('/my-bookings/list', eventController.listMyBookings);
 router.get('/:id', eventController.getEvent);
 router.post('/:id/register', eventController.registerStudent);
 router.get('/:id/registrations', eventController.listRegistrations);
+router.put('/:id', eventController.updateEvent);
 router.delete('/:id', eventController.deleteEvent);
 
 module.exports = router;

@@ -654,3 +654,104 @@ exports.listMyBookings = async (req, res) => {
   }
 };
 
+// PUT /api/events/:id
+exports.updateEvent = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { title, description, date, time, venue, capacity, foodMenu, coordinatorName, coordinatorPhone, dueDate, requesterUsername } = req.body;
+    
+    if (!requesterUsername) {
+      return res.status(400).json({ message: 'requesterUsername is required to edit event.' });
+    }
+    
+    const event = await Event.findById(id);
+    if (!event) {
+      return res.status(404).json({ message: 'Event not found' });
+    }
+    
+    const requesterLower = requesterUsername.trim().toLowerCase();
+    const creatorLower = (event.createdBy || '').trim().toLowerCase();
+    if (requesterLower !== 'admin' && requesterLower !== 'organiser' && requesterLower !== creatorLower) {
+      return res.status(403).json({ message: 'You are not authorized to edit this event.' });
+    }
+    
+    if (title !== undefined && !title.trim()) return res.status(400).json({ message: 'Title is required' });
+    if (description !== undefined && !description.trim()) return res.status(400).json({ message: 'Description is required' });
+    if (date !== undefined && !date) return res.status(400).json({ message: 'Date is required' });
+    if (time !== undefined && !time.trim()) return res.status(400).json({ message: 'Time is required' });
+    if (venue !== undefined && !venue.trim()) return res.status(400).json({ message: 'Venue is required' });
+    if (capacity !== undefined && !capacity) return res.status(400).json({ message: 'Capacity is required' });
+    
+    const proposedDate = date ? new Date(date) : new Date(event.date);
+    
+    if (date) {
+      const today = new Date();
+      const limitDate = new Date(today.getFullYear(), today.getMonth() + 3, 0, 23, 59, 59, 999);
+      if (proposedDate > limitDate) {
+        return res.status(400).json({ message: 'Event date must be within the next 3 months.' });
+      }
+    }
+    
+    const finalDueDate = dueDate !== undefined ? dueDate : event.dueDate;
+    if (finalDueDate) {
+      const parsedDueDate = new Date(finalDueDate);
+      if (parsedDueDate > proposedDate) {
+        return res.status(400).json({ message: 'Registration deadline cannot be after the event date.' });
+      }
+      event.dueDate = parsedDueDate;
+    } else if (dueDate === null || dueDate === '') {
+      event.dueDate = undefined;
+    }
+    
+    const proposedVenue = venue ? venue.trim().replace(/\s+/g, ' ') : event.venue;
+    const proposedTime = time ? time.trim() : event.time;
+    
+    if (date || time || venue) {
+      const existingEventsAtVenue = await Event.find({
+        _id: { $ne: event._id },
+        venue: { $regex: new RegExp('^' + proposedVenue + '$', 'i') },
+        status: { $ne: 'declined' }
+      });
+      
+      let isClash = false;
+      for (const extEvent of existingEventsAtVenue) {
+        if (isSameDay(proposedDate, extEvent.date) && isOverlapping(proposedTime, extEvent.time)) {
+          isClash = true;
+          break;
+        }
+      }
+      if (isClash) {
+        return res.status(400).json({ message: 'Already booked' });
+      }
+    }
+    
+    if (title) event.title = title.trim();
+    if (description) event.description = description.trim();
+    if (date) event.date = proposedDate;
+    if (time) event.time = proposedTime;
+    if (venue) event.venue = proposedVenue;
+    if (capacity) event.capacity = Number(capacity);
+    if (foodMenu !== undefined) event.foodMenu = foodMenu.trim();
+    if (coordinatorName !== undefined) event.coordinatorName = coordinatorName.trim();
+    if (coordinatorPhone !== undefined) event.coordinatorPhone = coordinatorPhone.trim();
+    
+    await event.save();
+    
+    try {
+      const activity = new Activity({
+        userName: requesterUsername,
+        userEmail: requesterUsername,
+        activityType: 'EDIT_EVENT',
+        description: `Edited event: '${event.title}'`
+      });
+      await activity.save();
+    } catch (e) {
+      console.warn("Failed to log edit activity:", e);
+    }
+    
+    res.json({ message: 'Event updated successfully.', event });
+  } catch (error) {
+    res.status(500).json({ message: 'Error updating event', error: error.message });
+  }
+};
+
