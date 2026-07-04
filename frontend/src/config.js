@@ -1,1 +1,1 @@
-export const API_BASE = 'http://localhost:5001/api';
+export const API_BASE = 'https://ventixe-backend.onrender.com/api';
