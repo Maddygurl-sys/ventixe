@@ -413,13 +413,18 @@ exports.registerStudent = async (req, res) => {
     
     const emailLower = studentEmail.trim().toLowerCase();
     
-    // 2. Check ticket quota for this student name / email (limit to 5)
+    // 2. Check ticket quota for this student name / email / bookedBy (limit to 5)
+    const queryOr = [
+      { studentName: { $regex: new RegExp('^' + studentName.trim() + '$', 'i') } },
+      { studentEmail: emailLower }
+    ];
+    if (bookedBy) {
+      queryOr.push({ bookedBy: bookedBy.trim() });
+    }
+
     const studentBookingsCount = await Registration.countDocuments({ 
       eventId,
-      $or: [
-        { studentName: { $regex: new RegExp('^' + studentName.trim() + '$', 'i') } },
-        { studentEmail: emailLower }
-      ]
+      $or: queryOr
     });
     if (studentBookingsCount >= 5 || studentBookingsCount + quantity > 5) {
       return res.status(400).json({ message: 'You cannot book more than 5 tickets.' });
