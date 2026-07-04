@@ -46,6 +46,10 @@ const registrationSchema = new mongoose.Schema({
   qrCode: {
     type: String, // String representation of the QR code (Data URL or unique verification link)
     required: true,
+  },
+  bookedBy: {
+    type: String,
+    trim: true,
   }
 });
 

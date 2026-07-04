@@ -370,7 +370,7 @@ exports.createEvent = async (req, res) => {
 exports.registerStudent = async (req, res) => {
   try {
     const eventId = req.params.id;
-    const { studentName, studentEmail, studentPhone, foodPreference, bypassClash, paymentStatus, upiTransactionId, quantity: qtyInput } = req.body;
+    const { studentName, studentEmail, studentPhone, foodPreference, bypassClash, paymentStatus, upiTransactionId, quantity: qtyInput, bookedBy } = req.body;
     
     if (!studentName || !studentEmail || !studentPhone) {
       return res.status(400).json({ message: 'Name, email, and phone number are required' });
@@ -467,7 +467,8 @@ exports.registerStudent = async (req, res) => {
         checkedIn: false,
         qrCode: 'PENDING',
         paymentStatus: finalPaymentStatus,
-        upiTransactionId: finalUpiTxId
+        upiTransactionId: finalUpiTxId,
+        bookedBy: bookedBy ? bookedBy.trim() : undefined
       });
       
       const qrData = JSON.stringify({
@@ -623,16 +624,31 @@ exports.deleteEvent = async (req, res) => {
 // GET /api/events/my-bookings/list
 exports.listMyBookings = async (req, res) => {
   try {
-    const { studentName } = req.query;
-    if (!studentName) {
-      return res.status(400).json({ message: 'studentName is required.' });
+    const { studentName, bookedBy } = req.query;
+    if (!studentName && !bookedBy) {
+      return res.status(400).json({ message: 'studentName or bookedBy is required.' });
     }
     
-    const registrations = await Registration.find({ 
-      studentName: { $regex: new RegExp('^' + studentName.trim() + '$', 'i') } 
-    }).populate('eventId');
+    const query = {};
+    if (bookedBy) {
+      query.bookedBy = bookedBy.trim();
+    } else {
+      query.studentName = { $regex: new RegExp('^' + studentName.trim() + '$', 'i') };
+    }
     
-    res.json(registrations);
+    const registrations = await Registration.find(query).populate('eventId');
+    
+    // Filter: Only visible UNTIL the program ends
+    const activeRegistrations = registrations.filter(reg => {
+      if (!reg.eventId) return false;
+      const today = new Date();
+      const eventDate = new Date(reg.eventId.date);
+      // Set to 23:59:59 of event day so it is visible throughout the day of the event
+      const eventEndDate = new Date(eventDate.getFullYear(), eventDate.getMonth(), eventDate.getDate(), 23, 59, 59, 999);
+      return today <= eventEndDate;
+    });
+    
+    res.json(activeRegistrations);
   } catch (error) {
     res.status(500).json({ message: 'Error retrieving your bookings', error: error.message });
   }
