@@ -16,39 +16,59 @@ async function runTests() {
     const testUsername = 'pwdtestuser';
     await User.deleteOne({ username: testUsername });
 
-    // 1. Test short password (< 6 chars, should fail)
-    console.log('Attempting registration with short password "12345" (5 chars)...');
+    const expectedMsg = 'Password must be at least 6 characters long and contain at least one uppercase letter and one special character.';
+
+    // 1. Test too short password ("Ab1!", 4 chars)
+    console.log('Attempting registration with short password "Ab1!" (4 chars)...');
     const res1 = await fetch(`${API_BASE}/auth/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        username: testUsername,
-        password: '12345'
-      })
+      body: JSON.stringify({ username: testUsername, password: 'Ab1!' })
     });
     const data1 = await res1.json();
-    console.log(`Response status: ${res1.status}`);
-    console.log(`Response message: "${data1.message}"`);
-    if (res1.status !== 400 || data1.message !== 'Password is less than 6 characters. Keep a strong password.') {
+    console.log(`Response status: ${res1.status}, Message: "${data1.message}"`);
+    if (res1.status !== 400 || data1.message !== expectedMsg) {
       throw new Error('Backend failed to reject short password.');
     }
-    console.log('Short password validation test passed!');
 
-    // 2. Test valid password (6 chars, should succeed)
-    console.log('\nAttempting registration with valid password "123456" (6 chars)...');
+    // 2. Test no uppercase password ("abcde1!", 8 chars)
+    console.log('\nAttempting registration with no uppercase password "abcde1!"...');
     const res2 = await fetch(`${API_BASE}/auth/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        username: testUsername,
-        password: '123456'
-      })
+      body: JSON.stringify({ username: testUsername, password: 'abcde1!' })
     });
     const data2 = await res2.json();
-    console.log(`Response status: ${res2.status}`);
-    console.log(`Response message: "${data2.message}"`);
-    if (res2.status !== 201) {
-      throw new Error(`Expected success (201), got ${res2.status}`);
+    console.log(`Response status: ${res2.status}, Message: "${data2.message}"`);
+    if (res2.status !== 400 || data2.message !== expectedMsg) {
+      throw new Error('Backend failed to reject password with no uppercase letter.');
+    }
+
+    // 3. Test no special character password ("Abcde1", 6 chars)
+    console.log('\nAttempting registration with no special character password "Abcde1"...');
+    const res3 = await fetch(`${API_BASE}/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: testUsername, password: 'Abcde1' })
+    });
+    const data3 = await res3.json();
+    console.log(`Response status: ${res3.status}, Message: "${data3.message}"`);
+    if (res3.status !== 400 || data3.message !== expectedMsg) {
+      throw new Error('Backend failed to reject password with no special character.');
+    }
+    console.log('All weak password validation test cases passed!');
+
+    // 4. Test valid password ("Abcde1!", 7 chars, should succeed)
+    console.log('\nAttempting registration with valid password "Abcde1!"...');
+    const res4 = await fetch(`${API_BASE}/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: testUsername, password: 'Abcde1!' })
+    });
+    const data4 = await res4.json();
+    console.log(`Response status: ${res4.status}`);
+    if (res4.status !== 201) {
+      throw new Error(`Expected success (201), got ${res4.status}: ${data4.message}`);
     }
 
     // Verify user is in DB

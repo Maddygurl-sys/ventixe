@@ -13,8 +13,11 @@ exports.register = async (req, res) => {
       return res.status(400).json({ message: 'Username and password are required.' });
     }
 
-    if (password.length < 6) {
-      return res.status(400).json({ message: 'Password is less than 6 characters. Keep a strong password.' });
+    const passwordRegex = /^(?=.*[A-Z])(?=.*[^A-Za-z0-9]).{6,}$/;
+    if (!passwordRegex.test(password)) {
+      return res.status(400).json({ 
+        message: 'Password must be at least 6 characters long and contain at least one uppercase letter and one special character.' 
+      });
     }
 
     const usernameLower = username.trim().toLowerCase();

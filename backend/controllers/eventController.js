@@ -268,6 +268,14 @@ exports.createEvent = async (req, res) => {
     });
     
     const proposedDate = new Date(date);
+    
+    // Check 3-month window limit (current month + next 2 months)
+    const today = new Date();
+    const limitDate = new Date(today.getFullYear(), today.getMonth() + 3, 0, 23, 59, 59, 999);
+    if (proposedDate > limitDate) {
+      return res.status(400).json({ message: 'Event date must be within the next 3 months.' });
+    }
+    
     let isClash = false;
     for (const extEvent of existingEventsAtVenue) {
       if (isSameDay(proposedDate, extEvent.date) && isOverlapping(time, extEvent.time)) {
