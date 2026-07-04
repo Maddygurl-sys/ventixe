@@ -1,0 +1,69 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap');
+
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #D946EF; /* Ventixe Fuchsia/Magenta */
+  --color-secondary: #6B7280; /* Slate grey */
+  --color-surface: #F8F7FC; /* Very light lavender/grey background */
+  --color-outline: #F3E8FF; /* Light violet outline */
+  --color-background: #FFFFFF;
+  --color-accent: #8B5CF6; /* Purple/indigo accent */
+  
+  --color-card-green: #ECFDF5;
+  --color-card-greenText: #059669;
+  --color-card-pink: #FDF2F8;
+  --color-card-pinkText: #DB2777;
+  --color-card-purple: #F5F3FF;
+  --color-card-purpleText: #7C3AED;
+  --color-card-blue: #EFF6FF;
+  --color-card-blueText: #2563EB;
+}
+
+body {
+    background-color: #F8F7FC;
+    color: #1F2937;
+    font-family: 'Inter', sans-serif;
+}
+
+.material-symbols-outlined {
+    font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+}
+
+.hide-scrollbar::-webkit-scrollbar { display: none; }
+.hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+.glass-surface {
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid #F3E8FF;
+}
+
+.premium-card {
+    background: #ffffff;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    border: 1px solid #F3F0FA;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.01), 0 2px 4px -1px rgba(0, 0, 0, 0.01);
+}
+
+.premium-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 24px -10px rgba(217, 70, 239, 0.15);
+    border-color: #F5D0FE;
+}
+
+@keyframes fadeInScale {
+    from { opacity: 0; transform: scale(0.99) translateY(8px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.animate-entrance {
+    animation: fadeInScale 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.calendar-time-block {
+    border-left: 3px solid #D946EF;
+    background-color: #FDF2F8;
+    color: #C084FC;
+}

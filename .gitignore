@@ -1,0 +1,23 @@
+# Node.js
+node_modules/
+**/node_modules/
+
+# MongoDB data
+db_data/
+**/db_data/
+
+# Logs
+*.log
+
+# Environment variables
+.env
+
+# macOS
+.DS_Store
+
+# Build folders
+dist/
+build/
+
+# Cache
+.cache/
