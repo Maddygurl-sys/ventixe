@@ -37,12 +37,158 @@ function isSameDay(date1, date2) {
   const d1 = new Date(date1);
   const d2 = new Date(date2);
   if (isNaN(d1.getTime()) || isNaN(d2.getTime())) return false;
-  return d1.toISOString().split('T')[0] === d2.toISOString().split('T')[0];
+  return d1.getUTCFullYear() === d2.getUTCFullYear() &&
+         d1.getUTCMonth() === d2.getUTCMonth() &&
+         d1.getUTCDate() === d2.getUTCDate();
+}
+
+async function cleanupPastEvents() {
+  try {
+    const now = new Date();
+    const events = await Event.find({});
+    for (const event of events) {
+      const eventDate = new Date(event.date);
+      const timeStr = event.time || "00:00 - 23:59";
+      const parts = timeStr.split('-');
+      let endTimeStr = "23:59";
+      if (parts.length === 2) {
+        endTimeStr = parts[1].trim();
+      }
+      
+      const [hours, minutes] = endTimeStr.split(':').map(Number);
+      const endDateTime = new Date(eventDate);
+      endDateTime.setUTCHours(hours || 0, minutes || 0, 0, 0);
+      
+      if (endDateTime < now) {
+        console.log(`Auto-cleaning up ended event: ${event.title}`);
+        await Registration.deleteMany({ eventId: event._id });
+        await Event.findByIdAndDelete(event._id);
+      }
+    }
+  } catch (err) {
+    console.error("Cleanup of past events failed:", err.message);
+  }
+}
+
+async function autoSeed() {
+  try {
+    const count = await Event.countDocuments({});
+    if (count === 0) {
+      console.log("Database empty. Auto-seeding default 6 events...");
+      const now = new Date();
+      const isJuly2026 = now.getUTCFullYear() === 2026 && now.getUTCMonth() === 6; // July is index 6
+      
+      const getEventDate = (dayOffset, defaultDateStr) => {
+        if (isJuly2026) {
+          return new Date(defaultDateStr);
+        } else {
+          const d = new Date();
+          d.setDate(d.getDate() + dayOffset);
+          d.setUTCHours(0, 0, 0, 0);
+          return d;
+        }
+      };
+
+      const defaultEvents = [
+        {
+          title: 'Arohan',
+          description: 'Annual cultural fest with dance, music, and drama competitions.',
+          date: getEventDate(1, '2026-07-15T00:00:00Z'),
+          time: '09:00 - 18:00',
+          venue: 'Main Auditorium',
+          capacity: 200,
+          status: 'approved',
+          createdBy: 'Organiser',
+          foodMenu: 'Samosa, Veg Biryani, Ice Cream',
+          coordinatorName: 'Aman Preet',
+          coordinatorPhone: '+91 91234 56789'
+        },
+        {
+          title: 'Tiny Tans',
+          description: "Freshers' welcome party for the new batch.",
+          date: getEventDate(2, '2026-07-16T00:00:00Z'),
+          time: '16:00 - 20:00',
+          venue: 'Open Air Theatre',
+          capacity: 150,
+          status: 'approved',
+          createdBy: 'Organiser',
+          foodMenu: 'Cupcakes, Soft Drinks',
+          coordinatorName: 'Ananya Roy',
+          coordinatorPhone: '+91 96789 01234'
+        },
+        {
+          title: 'Code Red',
+          description: '24-hour coding and hackathon competition.',
+          date: getEventDate(5, '2026-07-20T00:00:00Z'),
+          time: '10:00 - 22:00',
+          venue: 'CS Seminar Hall',
+          capacity: 80,
+          status: 'approved',
+          createdBy: 'Organiser',
+          foodMenu: 'Pizza, Burgers, Coke (Lunch & Dinner)',
+          coordinatorName: 'Rohit Verma',
+          coordinatorPhone: '+91 92345 67890',
+          isPaid: true,
+          entryFee: 150,
+          upiId: 'codered@okaxis'
+        },
+        {
+          title: 'Mic Drop',
+          description: 'Open mic and stand-up comedy night.',
+          date: getEventDate(7, '2026-07-22T00:00:00Z'),
+          time: '18:00 - 21:00',
+          venue: 'College Amphitheatre',
+          capacity: 60,
+          status: 'approved',
+          createdBy: 'Organiser',
+          foodMenu: 'None',
+          coordinatorName: 'Sneha Sen',
+          coordinatorPhone: '+91 93456 78901'
+        },
+        {
+          title: 'Plate Tales',
+          description: 'Food festival with stalls and cooking competitions.',
+          date: getEventDate(10, '2026-07-25T00:00:00Z'),
+          time: '11:00 - 16:00',
+          venue: 'Main Lawn',
+          capacity: 250,
+          status: 'approved',
+          createdBy: 'Organiser',
+          foodMenu: 'Buffet Menu',
+          coordinatorName: 'Karan Malhotra',
+          coordinatorPhone: '+91 95678 90123',
+          isPaid: true,
+          entryFee: 200,
+          upiId: 'platetales@oksbi'
+        },
+        {
+          title: 'Farewell Fiesta',
+          description: 'Send-off event for the graduating batch.',
+          date: getEventDate(15, '2026-07-30T00:00:00Z'),
+          time: '15:00 - 19:00',
+          venue: 'Silver Jubilee Hall',
+          capacity: 100,
+          status: 'approved',
+          createdBy: 'Organiser',
+          foodMenu: 'Mocktails, Pulao, Paneer Curry',
+          coordinatorName: 'Divya Iyer',
+          coordinatorPhone: '+91 94567 89012'
+        }
+      ];
+
+      await Event.insertMany(defaultEvents);
+      console.log("Auto-seeded successfully!");
+    }
+  } catch (err) {
+    console.error("Auto-seeding failed:", err.message);
+  }
 }
 
 // GET /api/events
 exports.listEvents = async (req, res) => {
   try {
+    await cleanupPastEvents();
+    await autoSeed();
     const events = await Event.find({ status: 'approved' }).sort({ date: 1 });
     
     // Attach live registration count to each event in the list
@@ -63,6 +209,8 @@ exports.listEvents = async (req, res) => {
 // GET /api/events/my-events
 exports.listMyEvents = async (req, res) => {
   try {
+    await cleanupPastEvents();
+    await autoSeed();
     const { username } = req.query;
     if (!username) {
       return res.status(400).json({ message: 'Username is required.' });
@@ -104,6 +252,7 @@ exports.getEvent = async (req, res) => {
 // POST /api/events
 exports.createEvent = async (req, res) => {
   try {
+    await cleanupPastEvents();
     const { title, description, date, time, venue, capacity, createdBy, foodMenu, coordinatorName, coordinatorPhone, isPaid, entryFee, upiId } = req.body;
     
     if (!title || !description || !date || !time || !venue || !capacity) {

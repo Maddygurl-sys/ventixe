@@ -17,15 +17,33 @@ app.use(express.json());
 // ===============================
 async function connectDB() {
   try {
-    const uri = process.env.MONGO_URI;
+    let uri = process.env.MONGO_URI;
 
     if (!uri) {
-      throw new Error('MONGO_URI is not defined in environment variables.');
+      console.log('No MONGO_URI environment variable found. Starting local persistent database...');
+      const path = require('path');
+      const fs = require('fs');
+      const { MongoMemoryServer } = require('mongodb-memory-server');
+      
+      const dbDirectory = path.join(__dirname, 'db_data');
+      if (!fs.existsSync(dbDirectory)) {
+        fs.mkdirSync(dbDirectory, { recursive: true });
+      }
+
+      const mongoServer = await MongoMemoryServer.create({
+        instance: {
+          port: 27017,
+          dbName: 'event-management',
+          dbPath: dbDirectory,
+          storageEngine: 'wiredTiger'
+        }
+      });
+      uri = mongoServer.getUri();
+      console.log(`Persistent MongoDB started at: ${uri}`);
     }
 
-    await mongoose.connect(uri);
-
-    console.log('MongoDB Atlas connected successfully.');
+    await mongoose.connect(uri, { dbName: 'event-management' });
+    console.log('MongoDB connected successfully.');
   } catch (error) {
     console.error('Error connecting to MongoDB:', error.message);
     process.exit(1);
