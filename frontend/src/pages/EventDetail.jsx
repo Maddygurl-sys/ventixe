@@ -168,9 +168,15 @@ export default function EventDetail() {
 
   const isFull = event.registrationCount >= event.capacity;
   const today = new Date();
-  const eventDate = new Date(event.date);
-  const dueDate = new Date(eventDate.getTime() - 24 * 60 * 60 * 1000);
-  dueDate.setUTCHours(23, 59, 59, 999);
+  let dueDate;
+  if (event.dueDate) {
+    dueDate = new Date(event.dueDate);
+    dueDate.setHours(23, 59, 59, 999);
+  } else {
+    const eventDate = new Date(event.date);
+    dueDate = new Date(eventDate.getTime() - 24 * 60 * 60 * 1000);
+    dueDate.setUTCHours(23, 59, 59, 999);
+  }
   const isPastDeadline = today > dueDate;
 
   return (

@@ -82,23 +82,7 @@ export default function Layout({ children }) {
       });
       if (res.ok) {
         setSelectedRequestNotification(null);
-        // Refresh notifications
-        const notiRes = await fetch(`${API_BASE}/auth/notifications?username=${user.name}`);
-        if (notiRes.ok) {
-          const data = await notiRes.json();
-          const formatted = data.map((noti) => ({
-            id: noti._id,
-            title: noti.title,
-            description: noti.message,
-            time: new Date(noti.createdAt).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' }),
-            type: noti.type,
-            status: noti.status,
-            sender: noti.sender,
-            relatedEvent: noti.relatedEvent,
-            isRead: noti.isRead
-          }));
-          setNotifications(formatted);
-        }
+        window.location.reload();
       } else {
         const err = await res.json();
         alert(err.message || 'Failed to submit response.');

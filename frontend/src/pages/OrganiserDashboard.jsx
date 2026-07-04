@@ -27,6 +27,7 @@ export default function OrganiserDashboard() {
   const [isPaid, setIsPaid] = useState(false);
   const [entryFee, setEntryFee] = useState('');
   const [upiId, setUpiId] = useState('');
+  const [dueDate, setDueDate] = useState('');
 
   useEffect(() => {
     fetchEvents(false);
@@ -74,6 +75,13 @@ export default function OrganiserDashboard() {
         throw new Error('Event date must be within the next 3 months.');
       }
 
+      if (dueDate) {
+        const parsedDueDate = new Date(dueDate);
+        if (parsedDueDate > proposedDate) {
+          throw new Error('Registration deadline cannot be after the event date.');
+        }
+      }
+
       const normalizedVenue = venue.trim().replace(/\s+/g, ' ');
       const timeRange = `${startTime} - ${endTime}`;
 
@@ -95,7 +103,8 @@ export default function OrganiserDashboard() {
           coordinatorPhone,
           isPaid,
           entryFee: isPaid ? parseFloat(entryFee) : 0,
-          upiId: isPaid ? upiId.trim() : ''
+          upiId: isPaid ? upiId.trim() : '',
+          dueDate: dueDate || undefined
         })
       });
 
@@ -107,6 +116,7 @@ export default function OrganiserDashboard() {
       setTitle('');
       setDescription('');
       setDate('');
+      setDueDate('');
       setStartTime('10:00');
       setEndTime('12:00');
       setVenue('');
@@ -517,6 +527,18 @@ export default function OrganiserDashboard() {
                     />
                   </div>
                 </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest" htmlFor="modal-due">Registration Deadline (Due Date)</label>
+                <input 
+                  id="modal-due"
+                  type="date"
+                  placeholder="Optional (defaults to 1 day prior)"
+                  value={dueDate}
+                  onChange={(e) => setDueDate(e.target.value)}
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-sm font-semibold text-slate-700 focus:ring-2 focus:ring-primary/25"
+                />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
