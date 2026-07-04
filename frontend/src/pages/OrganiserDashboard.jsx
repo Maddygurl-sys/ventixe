@@ -28,6 +28,8 @@ export default function OrganiserDashboard() {
   const [entryFee, setEntryFee] = useState('');
   const [upiId, setUpiId] = useState('');
   const [dueDate, setDueDate] = useState('');
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingEventId, setEditingEventId] = useState(null);
 
   useEffect(() => {
     fetchEvents(false);
@@ -85,32 +87,41 @@ export default function OrganiserDashboard() {
       const normalizedVenue = venue.trim().replace(/\s+/g, ' ');
       const timeRange = `${startTime} - ${endTime}`;
 
-      const res = await fetch(`${API_BASE}/events`, {
-        method: 'POST',
+      const url = isEditing ? `${API_BASE}/events/${editingEventId}` : `${API_BASE}/events`;
+      const method = isEditing ? 'PUT' : 'POST';
+
+      const bodyObj = {
+        title,
+        description,
+        date,
+        time: timeRange,
+        venue: normalizedVenue,
+        capacity: parseInt(capacity, 10),
+        foodMenu,
+        coordinatorName,
+        coordinatorPhone,
+        dueDate: dueDate || undefined,
+        requesterUsername: 'admin' // admin role
+      };
+
+      if (!isEditing) {
+        bodyObj.createdBy = 'Organiser';
+        bodyObj.isPaid = isPaid;
+        bodyObj.entryFee = isPaid ? parseFloat(entryFee) : 0;
+        bodyObj.upiId = isPaid ? upiId.trim() : '';
+      }
+
+      const res = await fetch(url, {
+        method,
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          title,
-          description,
-          date,
-          time: timeRange,
-          venue: normalizedVenue,
-          capacity: parseInt(capacity, 10),
-          createdBy: 'Organiser',
-          foodMenu,
-          coordinatorName,
-          coordinatorPhone,
-          isPaid,
-          entryFee: isPaid ? parseFloat(entryFee) : 0,
-          upiId: isPaid ? upiId.trim() : '',
-          dueDate: dueDate || undefined
-        })
+        body: JSON.stringify(bodyObj)
       });
 
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.message || 'Failed to create event.');
+        throw new Error(data.message || (isEditing ? 'Failed to update event.' : 'Failed to create event.'));
       }
 
       setTitle('');
@@ -128,12 +139,63 @@ export default function OrganiserDashboard() {
       setEntryFee('');
       setUpiId('');
       setShowModal(false);
+      setIsEditing(false);
+      setEditingEventId(null);
       fetchEvents(false);
+      alert(isEditing ? 'Event updated successfully!' : 'Event created successfully!');
     } catch (err) {
       setCreateError(err.message || 'An error occurred.');
     } finally {
       setCreateSubmitting(false);
     }
+  };
+
+  const handleEditEvent = (event) => {
+    setIsEditing(true);
+    setEditingEventId(event._id);
+    setTitle(event.title);
+    setDescription(event.description);
+    setDate(event.date ? event.date.split('T')[0] : '');
+    const timeParts = (event.time || '').split('-');
+    if (timeParts.length === 2) {
+      setStartTime(timeParts[0].trim());
+      setEndTime(timeParts[1].trim());
+    } else {
+      setStartTime('10:00');
+      setEndTime('12:00');
+    }
+    setVenue(event.venue);
+    setCapacity(event.capacity);
+    setFoodMenu(event.foodMenu || 'None');
+    setCoordinatorName(event.coordinatorName || 'Organiser');
+    setCoordinatorPhone(event.coordinatorPhone || '');
+    setDueDate(event.dueDate ? event.dueDate.split('T')[0] : '');
+    setIsPaid(event.isPaid || false);
+    setEntryFee(event.entryFee || '');
+    setUpiId(event.upiId || '');
+    setCreateError('');
+    setShowModal(true);
+  };
+
+  const handleOpenCreateModal = () => {
+    setIsEditing(false);
+    setEditingEventId(null);
+    setTitle('');
+    setDescription('');
+    setDate('');
+    setStartTime('10:00');
+    setEndTime('12:00');
+    setVenue('');
+    setDueDate('');
+    setCapacity('');
+    setFoodMenu('None');
+    setCoordinatorName('Organiser');
+    setCoordinatorPhone('');
+    setIsPaid(false);
+    setEntryFee('');
+    setUpiId('');
+    setCreateError('');
+    setShowModal(true);
   };
 
   const handleDeleteEvent = (eventId) => {
@@ -197,7 +259,7 @@ export default function OrganiserDashboard() {
           <p className="text-slate-500 mt-1.5 text-sm">Manage student registration metrics and check-ins in real-time.</p>
         </div>
         <button 
-          onClick={() => setShowModal(true)}
+          onClick={() => handleOpenCreateModal()}
           className="flex items-center gap-2 bg-primary text-white px-5 py-3 rounded-2xl text-xs font-bold uppercase tracking-wider shadow-lg shadow-primary/20 hover:shadow-primary/30 hover:-translate-y-0.5 transition-all self-start md:self-auto"
         >
           <span className="material-symbols-outlined text-[18px]">add</span>
@@ -421,6 +483,12 @@ export default function OrganiserDashboard() {
                             Scan
                           </Link>
                           <button 
+                            onClick={() => handleEditEvent(event)}
+                            className="inline-flex items-center gap-1 text-[10px] font-extrabold px-3 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-750 border border-indigo-100 rounded-xl transition-all uppercase tracking-wider"
+                          >
+                            Edit
+                          </button>
+                          <button 
                             onClick={() => handleDeleteEvent(event._id)}
                             className="inline-flex items-center gap-1 text-[10px] font-extrabold px-3 py-2 bg-pink-50 hover:bg-pink-100 text-primary border border-pink-100 rounded-xl transition-all uppercase tracking-wider"
                           >
@@ -450,8 +518,10 @@ export default function OrganiserDashboard() {
           <div className="bg-white rounded-3xl p-8 max-w-lg w-full border border-purple-50 shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto animate-entrance">
             <div className="flex justify-between items-center">
               <div>
-                <h3 className="text-xl font-bold text-slate-800">Create Campus Event</h3>
-                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-1">Initialize a new event schedule</p>
+                <h3 className="text-xl font-bold text-slate-800">{isEditing ? 'Edit Event Details' : 'Create Campus Event'}</h3>
+                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-1">
+                  {isEditing ? 'Modify your program details' : 'Initialize a new event schedule'}
+                </p>
               </div>
               <button 
                 onClick={() => setShowModal(false)}
@@ -615,9 +685,10 @@ export default function OrganiserDashboard() {
                   <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest" htmlFor="modal-is-paid">Pricing Model</label>
                   <select 
                     id="modal-is-paid"
+                    disabled={isEditing}
                     value={isPaid ? "paid" : "free"}
                     onChange={(e) => setIsPaid(e.target.value === "paid")}
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-sm font-semibold text-slate-700 focus:ring-2 focus:ring-primary/25"
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-sm font-semibold text-slate-700 focus:ring-2 focus:ring-primary/25 disabled:opacity-60"
                   >
                     <option value="free">Free Admission</option>
                     <option value="paid">Paid Ticket</option>
@@ -631,12 +702,13 @@ export default function OrganiserDashboard() {
                       <input 
                         id="modal-fee"
                         required
+                        disabled={isEditing}
                         type="number"
                         min="1"
                         placeholder="e.g. 150"
                         value={entryFee}
                         onChange={(e) => setEntryFee(e.target.value)}
-                        className="w-full px-4 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-sm font-semibold text-slate-700 focus:ring-2 focus:ring-primary/25"
+                        className="w-full px-4 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-sm font-semibold text-slate-700 focus:ring-2 focus:ring-primary/25 disabled:opacity-60"
                       />
                     </div>
 
@@ -645,11 +717,12 @@ export default function OrganiserDashboard() {
                       <input 
                         id="modal-upi"
                         required
+                        disabled={isEditing}
                         type="text"
                         placeholder="e.g. host@okaxis"
                         value={upiId}
                         onChange={(e) => setUpiId(e.target.value)}
-                        className="w-full px-4 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-sm font-semibold text-slate-700 focus:ring-2 focus:ring-primary/25"
+                        className="w-full px-4 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-sm font-semibold text-slate-700 focus:ring-2 focus:ring-primary/25 disabled:opacity-60"
                       />
                     </div>
                   </>
@@ -669,7 +742,7 @@ export default function OrganiserDashboard() {
                   disabled={createSubmitting}
                   className="flex-1 py-3 bg-primary hover:bg-primary/95 text-white rounded-xl text-xs font-bold transition-all shadow-lg shadow-primary/20 disabled:opacity-50 uppercase tracking-wider"
                 >
-                  {createSubmitting ? 'Creating...' : 'Create Event'}
+                  {createSubmitting ? 'Submitting...' : (isEditing ? 'Update Event' : 'Create Event')}
                 </button>
               </div>
             </form>

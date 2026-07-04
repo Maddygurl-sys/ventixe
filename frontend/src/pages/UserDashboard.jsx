@@ -32,6 +32,8 @@ export default function UserDashboard() {
   const [myBookings, setMyBookings] = useState([]);
   const [loadingBookings, setLoadingBookings] = useState(false);
   const [selectedPass, setSelectedPass] = useState(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingEventId, setEditingEventId] = useState(null);
 
   // Success Modal State (Green Tick Popup)
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
@@ -93,7 +95,6 @@ export default function UserDashboard() {
       setCreateSubmitting(true);
       setCreateError('');
       
-      // Check 3-month window limit
       const proposedDate = new Date(date);
       const today = new Date();
       const limitDate = new Date(today.getFullYear(), today.getMonth() + 3, 0, 23, 59, 59, 999);
@@ -111,32 +112,41 @@ export default function UserDashboard() {
       const normalizedVenue = venue.trim().replace(/\s+/g, ' ');
       const timeRange = `${startTime} - ${endTime}`;
 
-      const res = await fetch(`${API_BASE}/events`, {
-        method: 'POST',
+      const url = isEditing ? `${API_BASE}/events/${editingEventId}` : `${API_BASE}/events`;
+      const method = isEditing ? 'PUT' : 'POST';
+
+      const bodyObj = {
+        title,
+        description,
+        date,
+        time: timeRange,
+        venue: normalizedVenue,
+        capacity: parseInt(capacity, 10),
+        foodMenu,
+        coordinatorName: coordinatorName || user.name,
+        coordinatorPhone,
+        dueDate: dueDate || undefined,
+        requesterUsername: user.name
+      };
+
+      if (!isEditing) {
+        bodyObj.createdBy = user.name;
+        bodyObj.isPaid = isPaid;
+        bodyObj.entryFee = isPaid ? parseFloat(entryFee) : 0;
+        bodyObj.upiId = isPaid ? upiId.trim() : '';
+      }
+
+      const res = await fetch(url, {
+        method,
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          title,
-          description,
-          date,
-          time: timeRange,
-          venue: normalizedVenue,
-          capacity: parseInt(capacity, 10),
-          createdBy: user.name,
-          foodMenu,
-          coordinatorName: coordinatorName || user.name,
-          coordinatorPhone,
-          isPaid,
-          entryFee: isPaid ? parseFloat(entryFee) : 0,
-          upiId: isPaid ? upiId.trim() : '',
-          dueDate: dueDate || undefined
-        })
+        body: JSON.stringify(bodyObj)
       });
 
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.message || 'Failed to create event.');
+        throw new Error(data.message || (isEditing ? 'Failed to update event.' : 'Failed to create event.'));
       }
 
       // Clear form
@@ -157,15 +167,69 @@ export default function UserDashboard() {
       setShowModal(false);
       
       // Show green tick success popup
-      setSuccessMsg(`Your event proposal for "${data.title}" was submitted successfully. Waiting for admin approval.`);
+      if (isEditing) {
+        setSuccessMsg(`Your event "${data.event?.title || title}" was updated successfully.`);
+      } else {
+        setSuccessMsg(`Your event proposal for "${data.title}" was submitted successfully. Waiting for admin approval.`);
+      }
       setShowSuccessPopup(true);
       
+      setIsEditing(false);
+      setEditingEventId(null);
       fetchMyEvents(false);
     } catch (err) {
       setCreateError(err.message || 'An error occurred.');
     } finally {
       setCreateSubmitting(false);
     }
+  };
+
+  const handleEditEvent = (event) => {
+    setIsEditing(true);
+    setEditingEventId(event._id);
+    setTitle(event.title);
+    setDescription(event.description);
+    setDate(event.date ? event.date.split('T')[0] : '');
+    const timeParts = (event.time || '').split('-');
+    if (timeParts.length === 2) {
+      setStartTime(timeParts[0].trim());
+      setEndTime(timeParts[1].trim());
+    } else {
+      setStartTime('10:00');
+      setEndTime('12:00');
+    }
+    setVenue(event.venue);
+    setCapacity(event.capacity);
+    setFoodMenu(event.foodMenu || 'None');
+    setCoordinatorName(event.coordinatorName || '');
+    setCoordinatorPhone(event.coordinatorPhone || '');
+    setDueDate(event.dueDate ? event.dueDate.split('T')[0] : '');
+    setIsPaid(event.isPaid || false);
+    setEntryFee(event.entryFee || '');
+    setUpiId(event.upiId || '');
+    setCreateError('');
+    setShowModal(true);
+  };
+
+  const handleOpenCreateModal = () => {
+    setIsEditing(false);
+    setEditingEventId(null);
+    setTitle('');
+    setDescription('');
+    setDate('');
+    setStartTime('10:00');
+    setEndTime('12:00');
+    setVenue('');
+    setDueDate('');
+    setCapacity('');
+    setFoodMenu('None');
+    setCoordinatorName('');
+    setCoordinatorPhone('');
+    setIsPaid(false);
+    setEntryFee('');
+    setUpiId('');
+    setCreateError('');
+    setShowModal(true);
   };
 
   const handleDeleteEvent = (eventId) => {
@@ -232,7 +296,7 @@ export default function UserDashboard() {
         <button 
           onClick={() => {
             setActiveTab('hosting');
-            setShowModal(true);
+            handleOpenCreateModal();
           }}
           className="flex items-center gap-2 bg-primary text-white px-5 py-3 rounded-2xl text-xs font-bold uppercase tracking-wider shadow-lg shadow-primary/20 hover:shadow-primary/30 hover:-translate-y-0.5 transition-all self-start md:self-auto"
         >
@@ -408,7 +472,7 @@ export default function UserDashboard() {
               )}
 
               <button 
-                onClick={() => setShowModal(true)}
+                onClick={() => handleOpenCreateModal()}
                 className="inline-flex items-center gap-2 bg-primary text-white px-6 py-3 rounded-2xl text-xs font-extrabold uppercase tracking-wider shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all"
               >
                 <span className="material-symbols-outlined text-[18px]">add</span>
@@ -624,9 +688,12 @@ export default function UserDashboard() {
                                   </Link>
                                 </>
                               )}
-                              {event.status === 'pending' && (
-                                <span className="text-slate-400 text-[10px] font-bold italic uppercase mr-2 tracking-wide">Pending Approval</span>
-                              )}
+                              <button 
+                                onClick={() => handleEditEvent(event)}
+                                className="inline-flex items-center gap-1 text-[10px] font-extrabold px-3 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-750 border border-indigo-100 rounded-xl transition-all uppercase tracking-wider"
+                              >
+                                Edit
+                              </button>
                               <button 
                                 onClick={() => handleDeleteEvent(event._id)}
                                 className="inline-flex items-center gap-1 text-[10px] font-extrabold px-3 py-2 bg-pink-50 hover:bg-pink-100 text-primary border border-pink-100 rounded-xl transition-all uppercase tracking-wider"
@@ -654,8 +721,10 @@ export default function UserDashboard() {
           <div className="bg-white rounded-3xl p-8 max-w-lg w-full border border-purple-50 shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto animate-entrance text-left">
             <div className="flex justify-between items-center">
               <div>
-                <h3 className="text-xl font-bold text-slate-800">Host New Event</h3>
-                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-1">Submit your program request for approval</p>
+                <h3 className="text-xl font-bold text-slate-800">{isEditing ? 'Edit Event Details' : 'Host New Event'}</h3>
+                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-1">
+                  {isEditing ? 'Modify your program details' : 'Submit your program request for approval'}
+                </p>
               </div>
               <button 
                 onClick={() => setShowModal(false)}
@@ -819,9 +888,10 @@ export default function UserDashboard() {
                   <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest" htmlFor="host-modal-is-paid">Pricing Model</label>
                   <select 
                     id="host-modal-is-paid"
+                    disabled={isEditing}
                     value={isPaid ? "paid" : "free"}
                     onChange={(e) => setIsPaid(e.target.value === "paid")}
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-sm font-semibold text-slate-700 focus:ring-2 focus:ring-primary/25"
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-sm font-semibold text-slate-700 focus:ring-2 focus:ring-primary/25 disabled:opacity-60"
                   >
                     <option value="free">Free Admission</option>
                     <option value="paid">Paid Ticket</option>
@@ -835,12 +905,13 @@ export default function UserDashboard() {
                       <input 
                         id="host-modal-fee"
                         required
+                        disabled={isEditing}
                         type="number"
                         min="1"
                         placeholder="e.g. 150"
                         value={entryFee}
                         onChange={(e) => setEntryFee(e.target.value)}
-                        className="w-full px-4 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-sm font-semibold text-slate-700 focus:ring-2 focus:ring-primary/25"
+                        className="w-full px-4 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-sm font-semibold text-slate-700 focus:ring-2 focus:ring-primary/25 disabled:opacity-60"
                       />
                     </div>
 
@@ -849,11 +920,12 @@ export default function UserDashboard() {
                       <input 
                         id="host-modal-upi"
                         required
+                        disabled={isEditing}
                         type="text"
                         placeholder="e.g. host@okaxis"
                         value={upiId}
                         onChange={(e) => setUpiId(e.target.value)}
-                        className="w-full px-4 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-sm font-semibold text-slate-700 focus:ring-2 focus:ring-primary/25"
+                        className="w-full px-4 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-sm font-semibold text-slate-700 focus:ring-2 focus:ring-primary/25 disabled:opacity-60"
                       />
                     </div>
                   </>
@@ -873,7 +945,7 @@ export default function UserDashboard() {
                   disabled={createSubmitting}
                   className="flex-1 py-3 bg-primary hover:bg-primary/95 text-white rounded-xl text-xs font-bold transition-all shadow-lg shadow-primary/20 disabled:opacity-50 uppercase tracking-wider"
                 >
-                  {createSubmitting ? 'Submitting...' : 'Submit Request'}
+                  {createSubmitting ? 'Submitting...' : (isEditing ? 'Update Event' : 'Submit Request')}
                 </button>
               </div>
             </form>
