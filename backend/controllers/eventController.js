@@ -376,6 +376,12 @@ exports.registerStudent = async (req, res) => {
       return res.status(400).json({ message: 'Name, email, and phone number are required' });
     }
     
+    const emailLower = studentEmail.trim().toLowerCase();
+    const studentEmailRegex = /^[a-zA-Z0-9._%+-]+@student\.tce\.edu$/;
+    if (!studentEmailRegex.test(emailLower)) {
+      return res.status(400).json({ message: 'Only student email addresses from @student.tce.edu are allowed.' });
+    }
+    
     const quantity = parseInt(qtyInput, 10) || 1;
     if (quantity < 1 || quantity > 5) {
       return res.status(400).json({ message: 'Invalid ticket quantity. You can book between 1 and 5 tickets.' });
@@ -411,8 +417,7 @@ exports.registerStudent = async (req, res) => {
       return res.status(400).json({ message: 'Event is full. Cannot book.' });
     }
     
-    const emailLower = studentEmail.trim().toLowerCase();
-    
+
     // 2. Check ticket quota for this student name / email / bookedBy (limit to 5)
     const queryOr = [
       { studentName: { $regex: new RegExp('^' + studentName.trim() + '$', 'i') } },

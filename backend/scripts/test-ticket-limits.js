@@ -43,7 +43,7 @@ async function runTests() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         studentName: 'Student Bob',
-        studentEmail: 'bob@college.edu',
+        studentEmail: 'bob@student.tce.edu',
         studentPhone: '+91 99999 11111',
         foodPreference: 'veg',
         quantity: 3
@@ -71,7 +71,7 @@ async function runTests() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         studentName: 'Student Bob',
-        studentEmail: 'bob@college.edu',
+        studentEmail: 'bob@student.tce.edu',
         studentPhone: '+91 99999 11111',
         foodPreference: 'veg',
         quantity: 3
@@ -92,7 +92,7 @@ async function runTests() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         studentName: 'Student Bob',
-        studentEmail: 'bob@college.edu',
+        studentEmail: 'bob@student.tce.edu',
         studentPhone: '+91 99999 11111',
         foodPreference: 'veg',
         quantity: 2
@@ -116,7 +116,7 @@ async function runTests() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         studentName: 'Student Bob',
-        studentEmail: 'bob@college.edu',
+        studentEmail: 'bob@student.tce.edu',
         studentPhone: '+91 99999 11111',
         foodPreference: 'veg',
         quantity: 1
@@ -136,7 +136,7 @@ async function runTests() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         studentName: 'Student Carol',
-        studentEmail: 'carol@college.edu',
+        studentEmail: 'carol@student.tce.edu',
         studentPhone: '+91 99999 22222',
         foodPreference: 'veg',
         quantity: 3
@@ -160,7 +160,7 @@ async function runTests() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         studentName: 'Student David',
-        studentEmail: 'david@college.edu',
+        studentEmail: 'david@student.tce.edu',
         studentPhone: '+91 99999 33333',
         foodPreference: 'veg',
         quantity: 1

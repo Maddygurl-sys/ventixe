@@ -21,7 +21,7 @@ async function runTests() {
 
     // 2. Register student with a unique name
     const studentName = 'Test Student ' + Date.now();
-    const studentEmail = 'teststudent@college.edu';
+    const studentEmail = 'teststudent@student.tce.edu';
     console.log(`\nRegistering student: "${studentName}"...`);
     const regRes = await fetch(`${API_BASE}/events/${event._id}/register`, {
       method: 'POST',

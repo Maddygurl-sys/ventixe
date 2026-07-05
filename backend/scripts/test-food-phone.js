@@ -56,7 +56,7 @@ async function runTests() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         studentName: 'Alice Kumar',
-        studentEmail: 'alice@college.edu',
+        studentEmail: 'alice@student.tce.edu',
         studentPhone: '+91 98765 43210',
         foodPreference: 'veg'
       })

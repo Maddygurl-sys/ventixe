@@ -39,7 +39,7 @@ async function runTests() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           studentName: 'Alice Test',
-          studentEmail: 'alice@test.com',
+          studentEmail: 'alice@student.tce.edu',
           studentPhone: '9876543210'
         })
       });
@@ -62,7 +62,7 @@ async function runTests() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         studentName: 'Alice Test',
-        studentEmail: 'alice@test.com',
+        studentEmail: 'alice@student.tce.edu',
         studentPhone: '9876543210',
         paymentStatus: 'paid',
         upiTransactionId: 'TXN123456789'

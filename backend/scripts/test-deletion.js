@@ -65,7 +65,7 @@ async function runTests() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         studentName: 'Student Two',
-        studentEmail: 'student2@college.edu',
+        studentEmail: 'student2@student.tce.edu',
         studentPhone: '111',
         foodPreference: 'none'
       })
@@ -77,7 +77,7 @@ async function runTests() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         studentName: 'Student Three',
-        studentEmail: 'student3@college.edu',
+        studentEmail: 'student3@student.tce.edu',
         studentPhone: '222',
         foodPreference: 'none'
       })
@@ -122,7 +122,7 @@ async function runTests() {
     console.log(`Confirmed: Admin notified! Alert: "${cancelAlertForAdmin.message}"`);
 
     // Check student2 notifications
-    const resStudentNotif = await fetch(`${API_BASE}/auth/notifications?username=student2@college.edu`);
+    const resStudentNotif = await fetch(`${API_BASE}/auth/notifications?username=student2@student.tce.edu`);
     const studentNotifs = await resStudentNotif.json();
     const cancelAlertForStudent = studentNotifs.find(n => n.type === 'SYSTEM' && n.title === 'Event Cancelled');
     if (!cancelAlertForStudent) {

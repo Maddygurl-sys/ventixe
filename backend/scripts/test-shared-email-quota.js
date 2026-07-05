@@ -31,7 +31,7 @@ async function runTests() {
     const event = await createRes.json();
     console.log(`Event created: ${event.title}, ID: ${event._id}`);
 
-    const sharedEmail = 'shared_holder@college.edu';
+    const sharedEmail = 'shared_holder@student.tce.edu';
 
     // 2. User 1 (u1) books 3 tickets with sharedEmail
     console.log('\nUser 1 booking 3 tickets with sharedEmail...');

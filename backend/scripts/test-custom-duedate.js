@@ -54,7 +54,7 @@ async function runTests() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         studentName: 'Test Student',
-        studentEmail: 'student@college.edu',
+        studentEmail: 'student@student.tce.edu',
         studentPhone: '+91 99999 00000',
         foodPreference: 'veg',
         quantity: 1
@@ -94,7 +94,7 @@ async function runTests() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         studentName: 'Test Student',
-        studentEmail: 'student@college.edu',
+        studentEmail: 'student@student.tce.edu',
         studentPhone: '+91 99999 00000',
         foodPreference: 'veg',
         quantity: 1

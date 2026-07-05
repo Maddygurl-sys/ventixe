@@ -35,7 +35,7 @@ async function runTests() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         studentName: 'Alice Smith',
-        studentEmail: 'alice@college.edu'
+        studentEmail: 'alice@student.tce.edu'
       })
     });
     if (!regRes1.ok) {
@@ -54,7 +54,7 @@ async function runTests() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         studentName: 'Alice Smith',
-        studentEmail: 'alice@college.edu'
+        studentEmail: 'alice@student.tce.edu'
       })
     });
     console.log(`Status code: ${regRes2.status}`);
@@ -71,7 +71,7 @@ async function runTests() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         studentName: 'Alice Smith',
-        studentEmail: 'alice@college.edu'
+        studentEmail: 'alice@student.tce.edu'
       })
     });
     if (!regRes3.ok) {
@@ -107,7 +107,7 @@ async function runTests() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         studentName: 'Alice Smith',
-        studentEmail: 'alice@college.edu'
+        studentEmail: 'alice@student.tce.edu'
       })
     });
     console.log(`Status code: ${regConflictRes.status}`);
@@ -124,7 +124,7 @@ async function runTests() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         studentName: 'Alice Smith',
-        studentEmail: 'alice@college.edu',
+        studentEmail: 'alice@student.tce.edu',
         bypassClash: true
       })
     });
