@@ -81,6 +81,13 @@ export default function EventDetail() {
     if (e && e.preventDefault) e.preventDefault();
     if (!name || !email || !phone) return;
 
+    // Validate email format matches username@student.tce.edu
+    const studentEmailRegex = /^[a-zA-Z0-9._%+-]+@student\.tce\.edu$/;
+    if (!studentEmailRegex.test(email.trim().toLowerCase())) {
+      setError('Only student email addresses from @student.tce.edu are allowed.');
+      return;
+    }
+
     // Open checkout modal first if event is paid and we haven't paid yet
     if (event.isPaid && !showCheckoutModal) {
       setShowCheckoutModal(true);
